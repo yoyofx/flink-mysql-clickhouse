@@ -58,7 +58,6 @@ public class StreamingJob {
 
 		System.out.println("data stream loaded completed");
 
-
 		SinkFunction<StreamData> clickHouseSink = new ClickhouseSinkBuilder()
 				.withHost("192.168.15.111","8123")
 				.withAuth("default","default","")

@@ -3,7 +3,9 @@ package org.example.fx;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.JdbcSink;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.example.StreamData;
 
 import java.lang.reflect.Field;
 
@@ -27,7 +29,6 @@ public class ClickhouseSinkBuilder<T> {
         this.password = passWord;
         return this;
     }
-
 
     public SinkFunction<T> Build(Class<T> dataType)  {
         Field[] fields = dataType.getDeclaredFields();
