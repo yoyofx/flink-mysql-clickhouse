@@ -18,9 +18,15 @@
 
 package org.example;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
 import org.example.fx.ClickhouseSinkBuilder;
 
 import java.util.List;
@@ -58,12 +64,14 @@ public class StreamingJob {
 
 		System.out.println("data stream loaded completed");
 
-		SinkFunction<StreamData> clickHouseSink = new ClickhouseSinkBuilder()
+		result.addSink(
+				new ClickhouseSinkBuilder()
 				.withHost("192.168.15.111","8123")
 				.withAuth("default","default","")
-				.Build(StreamData.class);
+				.Build(StreamData.class));
+		env.execute("Flink Streaming for Clickhouse");
 
-		result.addSink(clickHouseSink);
-		env.execute("Flink Streaming Java API Skeleton");
 	}
+
+
 }
