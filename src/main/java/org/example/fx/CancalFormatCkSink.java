@@ -69,7 +69,9 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
         try {
             for(CancalBinlogRow row : rows) {
                 ps = conn.prepareStatement("");
+                // add params
 //                ps.setObject();
+                ps.addBatch();
             }
             ps.executeBatch();
             conn.commit();
