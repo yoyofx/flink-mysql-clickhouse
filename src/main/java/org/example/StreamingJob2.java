@@ -72,6 +72,7 @@ public class StreamingJob2 {
                         }
                     }
                 })
+//                .addSink()
                 .print();
 
 
