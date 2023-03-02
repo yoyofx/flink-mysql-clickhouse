@@ -62,7 +62,7 @@ public class StreamingJob2 {
         env.fromSource(source, WatermarkStrategy.noWatermarks(),"kafka source")
                 .map(jsonLine -> jsonMapper.readValue(jsonLine, CancalBinlogRow.class))
                 .keyBy(value -> value.getDatabase())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(15)))
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
                 .process(new ProcessWindowFunction<CancalBinlogRow, List<CancalBinlogRow>,String, TimeWindow>(){
                     @Override
                     public void process(String key, ProcessWindowFunction<CancalBinlogRow, List<CancalBinlogRow> , String, TimeWindow>.Context context, Iterable<CancalBinlogRow> input, Collector<List<CancalBinlogRow>> out) throws Exception {
@@ -78,14 +78,14 @@ public class StreamingJob2 {
         env.execute("Window WordCount");
     }
 
-    public static class Splitter implements FlatMapFunction<String, Tuple2<String, Integer>> {
-        @Override
-        public void flatMap(String sentence, Collector<Tuple2<String, Integer>> out) throws Exception {
-            for (String word: sentence.split(" ")) {
-                out.collect(new Tuple2<String, Integer>(word, 1));
-            }
-        }
-    }
+//    public static class Splitter implements FlatMapFunction<String, Tuple2<String, Integer>> {
+//        @Override
+//        public void flatMap(String sentence, Collector<Tuple2<String, Integer>> out) throws Exception {
+//            for (String word: sentence.split(" ")) {
+//                out.collect(new Tuple2<String, Integer>(word, 1));
+//            }
+//        }
+//    }
 
 }
 
