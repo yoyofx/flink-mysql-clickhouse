@@ -1,7 +1,8 @@
 
 package org.example.fx;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;

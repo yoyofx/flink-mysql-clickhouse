@@ -1,14 +1,12 @@
 package org.example.fx;
 
+
+import com.clickhouse.jdbc.ClickHouseDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import ru.yandex.clickhouse.ClickHouseConnection;
-import ru.yandex.clickhouse.ClickHouseDataSource;
-import ru.yandex.clickhouse.ClickHouseStatement;
-import ru.yandex.clickhouse.settings.ClickHouseProperties;
-import ru.yandex.clickhouse.settings.ClickHouseQueryParam;
+
 
 
 import java.sql.*;
@@ -55,20 +53,17 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-        //配置文件
-        HikariConfig hikariConfig = new HikariConfig();
-//        hikariConfig.setJdbcUrl("jdbc:mysql://localhost:3306/mydata");//mysql
-        hikariConfig.setJdbcUrl(String.format("jdbc:clickhouse://%s:%s/%s", this.ckHost, this.ckPort, this.dbName));//oracle
-        hikariConfig.setDriverClassName("ru.yandex.clickhouse.ClickHouseDriver");
-        hikariConfig.setUsername(this.user);
-        hikariConfig.setPassword("");
-        hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
-        ds = new HikariDataSource(hikariConfig);
-        conn = ds.getConnection();
+//        String url = "jdbc:ch://192.168.15.111:8123/default";
+        String url = String.format("jdbc:ch://%s:%s/%s", this.ckHost, this.ckPort, this.dbName);
+        Properties  properties = new Properties ();
+//        properties.setSessionId("default-session-id");
+
+        ClickHouseDataSource dataSource = new ClickHouseDataSource(url, properties);
+        conn = dataSource.getConnection(this.user,this.password);
         conn.setAutoCommit(false);
+
+
     }
 
     @Override
@@ -81,12 +76,12 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
 
     @Override
     public void invoke(List<CancalBinlogRow> rows, Context context) throws Exception {
-        Statement ps = conn.createStatement();
+        Statement stmt = conn.createStatement();
 
         try {
-            StringBuffer sb = new StringBuffer();
-            for (CancalBinlogRow row : rows) {
 
+            for (CancalBinlogRow row : rows) {
+                StringBuffer sb = new StringBuffer();
                 sb.append("INSERT INTO ");
 //                String database = row.getDatabase();
                 String database = "default";
@@ -122,16 +117,16 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                 sb.append(filedsBuffer.substring(0, filedsBuffer.length() - 1)).append(") ");
                 sb.append(" values ");
                 sb.append("(").append(dataBuffer.substring(0, dataBuffer.length() - 1)).append(")");
-                // add params
-//                ps.setObject();
-//            ps.execute(sb.toString());
-                ps.addBatch(sb.toString());
+
+                stmt.addBatch(sb.toString());
+                System.out.println("sql:" + sb);
             }
 
-            System.out.println("sqlsqlsqlsqlsqlsqlsqlsql:" + sb);
-            ps.executeBatch();
+
+            int[] ints = stmt.executeBatch();
+            System.out.println("ints:"+ Arrays.toString(ints));
             conn.commit();
-            ps.close();
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
