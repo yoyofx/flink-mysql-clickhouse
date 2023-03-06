@@ -129,6 +129,20 @@ under the License.
 			<version>${log4j.version}</version>
 			<scope>runtime</scope>
 		</dependency>
+		<!--mybatis依赖 -->
+		<dependency>
+			<groupId>org.mybatis</groupId>
+			<artifactId>mybatis</artifactId>
+			<version>3.5.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>4.0.3</version>
+		</dependency>
+
+
 	</dependencies>
 
 	<build>

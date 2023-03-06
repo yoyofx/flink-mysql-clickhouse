@@ -74,6 +74,7 @@ public class StreamingJob2 {
                         if (list.size() > 0) {
                             out.collect(list);
                         }
+
                     }
                 });
 //                .addSink()

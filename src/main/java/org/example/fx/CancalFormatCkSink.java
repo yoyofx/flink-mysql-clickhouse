@@ -1,5 +1,7 @@
 package org.example.fx;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import ru.yandex.clickhouse.ClickHouseConnection;
@@ -9,14 +11,15 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 import ru.yandex.clickhouse.settings.ClickHouseQueryParam;
 
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 
 public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> {
-    private ClickHouseConnection conn = null;
+
+    HikariDataSource ds = null;
+    private Connection conn = null;
+
+    //    Statement statement = null;
     private String ckHost = "";
     private String ckPort = "";
     private String user = "";
@@ -24,6 +27,7 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     private String dbName = "";
 
     private static List fliedType = new ArrayList();
+
     static {
         fliedType.add("varchar");
         fliedType.add("char");
@@ -51,32 +55,39 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-        String url = String.format("jdbc:clickhouse://%s:%s/%s?keepAliveTimeout=300000&socket_timeout=300000&dataTransferTimeout=300000", this.ckHost, this.ckPort, this.dbName);
-        ClickHouseProperties properties = new ClickHouseProperties();
-        properties.setUser(this.user);
-        properties.setPassword(this.password);
-//        properties.setSessionId("default-session-id");
+        //配置文件
+        HikariConfig hikariConfig = new HikariConfig();
+//        hikariConfig.setJdbcUrl("jdbc:mysql://localhost:3306/mydata");//mysql
+        hikariConfig.setJdbcUrl(String.format("jdbc:clickhouse://%s:%s/%s", this.ckHost, this.ckPort, this.dbName));//oracle
+        hikariConfig.setDriverClassName("ru.yandex.clickhouse.ClickHouseDriver");
+        hikariConfig.setUsername(this.user);
+        hikariConfig.setPassword("");
+        hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+        hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+        hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
-        ClickHouseDataSource dataSource = new ClickHouseDataSource(url, properties);
-        conn = dataSource.getConnection();
+        ds = new HikariDataSource(hikariConfig);
+        conn = ds.getConnection();
         conn.setAutoCommit(false);
     }
 
     @Override
     public void close() throws Exception {
         super.close();
-        if (conn != null) {
-            conn.close();
+        if (ds != null) {
+            ds.close();
         }
     }
 
     @Override
     public void invoke(List<CancalBinlogRow> rows, Context context) throws Exception {
-        PreparedStatement ps = null;
+        Statement ps = conn.createStatement();
+
         try {
-            StringBuffer sb = null;
+            StringBuffer sb = new StringBuffer();
             for (CancalBinlogRow row : rows) {
-                sb = new StringBuffer("INSERT INTO ");
+
+                sb.append("INSERT INTO ");
 //                String database = row.getDatabase();
                 String database = "default";
                 String table = row.getTable();
@@ -98,9 +109,9 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                     while (keys.hasNext()) {
                         String key = keys.next();
                         filedsBuffer.append(key).append(",");
-                        if (fliedType.contains(mysqlType.get(key).split("\\(")[0])){
-                            dataBuffer.append("\'"+data.get(key)+"\'").append(",");
-                        }else {
+                        if (fliedType.contains(mysqlType.get(key).split("\\(")[0])) {
+                            dataBuffer.append("\'" + data.get(key) + "\'").append(",");
+                        } else {
                             dataBuffer.append(data.get(key)).append(",");
                         }
 
@@ -110,15 +121,14 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                 //追加字段
                 sb.append(filedsBuffer.substring(0, filedsBuffer.length() - 1)).append(") ");
                 sb.append(" values ");
-                sb.append("(").append(dataBuffer.substring(0, dataBuffer.length() - 1)).append(");");
+                sb.append("(").append(dataBuffer.substring(0, dataBuffer.length() - 1)).append(")");
                 // add params
 //                ps.setObject();
-
+//            ps.execute(sb.toString());
+                ps.addBatch(sb.toString());
             }
-            ps = conn.prepareStatement(sb.toString());
 
-            ps.addBatch();
-            System.out.println("sqlsqlsqlsqlsqlsqlsqlsql:"+sb);
+            System.out.println("sqlsqlsqlsqlsqlsqlsqlsql:" + sb);
             ps.executeBatch();
             conn.commit();
             ps.close();
@@ -127,7 +137,6 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
             System.out.println(e.getMessage());
         }
     }
-
 
 
 }
