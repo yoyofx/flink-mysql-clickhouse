@@ -2,8 +2,7 @@ package org.example.fx;
 
 
 import com.clickhouse.jdbc.ClickHouseDataSource;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
@@ -14,7 +13,6 @@ import java.util.*;
 
 public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> {
 
-    HikariDataSource ds = null;
     private Connection conn = null;
 
     //    Statement statement = null;
@@ -69,8 +67,8 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     @Override
     public void close() throws Exception {
         super.close();
-        if (ds != null) {
-            ds.close();
+        if (conn != null) {
+            conn.close();
         }
     }
 
