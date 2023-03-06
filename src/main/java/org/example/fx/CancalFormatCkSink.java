@@ -23,6 +23,16 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     private String password = "";
     private String dbName = "";
 
+    private static List fliedType = new ArrayList();
+    static {
+        fliedType.add("varchar");
+        fliedType.add("char");
+        fliedType.add("text");
+        fliedType.add("datetime");
+        fliedType.add("date");
+        fliedType.add("timestamp");
+    }
+
     public CancalFormatCkSink withHost(String ckHost, String ckPort) {
         this.ckHost = ckHost;
         this.ckPort = ckPort;
@@ -41,11 +51,11 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-        String url = String.format("jdbc:clickhouse://%s:%s/%s", this.ckHost, this.ckPort, this.dbName);
+        String url = String.format("jdbc:clickhouse://%s:%s/%s?keepAliveTimeout=300000&socket_timeout=300000&dataTransferTimeout=300000", this.ckHost, this.ckPort, this.dbName);
         ClickHouseProperties properties = new ClickHouseProperties();
         properties.setUser(this.user);
         properties.setPassword(this.password);
-        properties.setSessionId("default-session-id");
+//        properties.setSessionId("default-session-id");
 
         ClickHouseDataSource dataSource = new ClickHouseDataSource(url, properties);
         conn = dataSource.getConnection();
@@ -71,12 +81,15 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                 String database = "default";
                 String table = row.getTable();
                 String type = row.getType();
-                if (type != null && "insert".equals(type.toLowerCase())) {
-
+                if (type == null || !"insert".equals(type.toLowerCase())) {
+                    return;
                 }
                 sb.append(database).append(".").append(table).append(" (");
                 //获取每行的数据
                 List<LinkedHashMap<String, Object>> datas = row.getData();
+
+                //字段类型
+                LinkedHashMap<String, String> mysqlType = row.getMysqlType();
                 //解析字段
                 StringBuffer filedsBuffer = new StringBuffer();
                 StringBuffer dataBuffer = new StringBuffer();
@@ -85,27 +98,37 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                     while (keys.hasNext()) {
                         String key = keys.next();
                         filedsBuffer.append(key).append(",");
-                        dataBuffer.append(data.get(key)).append(",");
+                        if (fliedType.contains(mysqlType.get(key).split("\\(")[0])){
+                            dataBuffer.append("\'"+data.get(key)+"\'").append(",");
+                        }else {
+                            dataBuffer.append(data.get(key)).append(",");
+                        }
+
                         System.out.println("key:" + key + "," + " value:" + data.get(key));
                     }
                 }
                 //追加字段
                 sb.append(filedsBuffer.substring(0, filedsBuffer.length() - 1)).append(") ");
                 sb.append(" values ");
-                sb.append("(").append(dataBuffer).append(");");
+                sb.append("(").append(dataBuffer.substring(0, dataBuffer.length() - 1)).append(");");
                 // add params
 //                ps.setObject();
 
             }
             ps = conn.prepareStatement(sb.toString());
-            ps.addBatch();
 
+            ps.addBatch();
+            System.out.println("sqlsqlsqlsqlsqlsqlsqlsql:"+sb);
             ps.executeBatch();
             conn.commit();
             ps.close();
         } catch (SQLException e) {
+            e.printStackTrace();
             System.out.println(e.getMessage());
         }
     }
+
+
+
 }
 

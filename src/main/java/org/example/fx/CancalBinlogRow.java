@@ -22,6 +22,16 @@ public class CancalBinlogRow {
     private String table;
     private long ts;
     private String type;
+    private LinkedHashMap<String, String> mysqlType;
+
+    public LinkedHashMap<String, String> getMysqlType() {
+        return mysqlType;
+    }
+
+    public void setMysqlType(LinkedHashMap<String, String> mysqlType) {
+        this.mysqlType = mysqlType;
+    }
+
     public void setData(List<LinkedHashMap<String,Object>> data) {
         this.data = data;
     }
@@ -81,6 +91,7 @@ public class CancalBinlogRow {
                 ", table='" + table + '\'' +
                 ", ts=" + ts +
                 ", type='" + type + '\'' +
+                ", mysqlType='" + mysqlType + '\'' +
                 '}';
     }
 }
