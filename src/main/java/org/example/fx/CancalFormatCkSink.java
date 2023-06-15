@@ -3,15 +3,18 @@ package org.example.fx;
 
 import com.clickhouse.jdbc.ClickHouseDataSource;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-
 
 
 import java.sql.*;
 import java.util.*;
 
 public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> {
+
+    private static Log logger = LogFactory.getLog(CancalFormatCkSink.class.getName());
 
     private Connection conn = null;
 
@@ -24,16 +27,21 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
 
     private static List fliedType = new ArrayList();
 
+    //数值类型
     static {
-        fliedType.add("varchar");
-        fliedType.add("char");
-        fliedType.add("text");
-        fliedType.add("datetime");
-        fliedType.add("date");
-        fliedType.add("timestamp");
+        fliedType.add("tinyint");
+        fliedType.add("smallint");
+        fliedType.add("mediumint");
+        fliedType.add("int");
+        fliedType.add("integer");
+        fliedType.add("bigint");
+        fliedType.add("float");
+        fliedType.add("double");
+        fliedType.add("decimal");
     }
 
     public CancalFormatCkSink withHost(String ckHost, String ckPort) {
+        System.out.println("clickhouse初始化");
         this.ckHost = ckHost;
         this.ckPort = ckPort;
         return this;
@@ -54,11 +62,11 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
 
 //        String url = "jdbc:ch://192.168.15.111:8123/default";
         String url = String.format("jdbc:ch://%s:%s/%s", this.ckHost, this.ckPort, this.dbName);
-        Properties  properties = new Properties ();
+        Properties properties = new Properties();
 //        properties.setSessionId("default-session-id");
 
         ClickHouseDataSource dataSource = new ClickHouseDataSource(url, properties);
-        conn = dataSource.getConnection(this.user,this.password);
+        conn = dataSource.getConnection(this.user, this.password);
         conn.setAutoCommit(false);
 
 
@@ -77,17 +85,31 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
         Statement stmt = conn.createStatement();
 
         try {
-
+            StringBuffer sql = new StringBuffer();
             for (CancalBinlogRow row : rows) {
+                String type = row.getType();
+                String sourceDatabase = row.getDatabase();
+                logger.error("sql数据类型{}" + type+"sourceDatabase:"+sourceDatabase);
                 StringBuffer sb = new StringBuffer();
                 sb.append("INSERT INTO ");
-//                String database = row.getDatabase();
-                String database = "default";
-                String table = row.getTable();
-                String type = row.getType();
-                if (type == null || !"insert".equals(type.toLowerCase())) {
-                    return;
+
+                //匹配源数据库
+                if (!"chehou_data_report".equals(sourceDatabase)) {
+                    continue;
                 }
+                //直接定义目标库名称
+                String database = "yccb_analysis";
+                //类型不存在，剔除sql
+                if (type == null) {
+                    //类型为空跳出
+                    continue;
+                }
+                // 为 insert 或者 update继续后续逻辑
+                if (!("insert".equals(type.toLowerCase()) || "update".equals(type.toLowerCase()))) {
+                    continue;
+                }
+                logger.info("sql类型：" + type);
+                String table = row.getTable();
                 sb.append(database).append(".").append(table).append(" (");
                 //获取每行的数据
                 List<LinkedHashMap<String, Object>> datas = row.getData();
@@ -103,12 +125,13 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                         String key = keys.next();
                         filedsBuffer.append(key).append(",");
                         if (fliedType.contains(mysqlType.get(key).split("\\(")[0])) {
-                            dataBuffer.append("\'" + data.get(key) + "\'").append(",");
-                        } else {
                             dataBuffer.append(data.get(key)).append(",");
+                        } else {
+                            dataBuffer.append("\'" + data.get(key) + "\'").append(",");
+
                         }
 
-                        System.out.println("key:" + key + "," + " value:" + data.get(key));
+//                        System.out.println("key:" + key + "," + " value:" + data.get(key));
                     }
                 }
                 //追加字段
@@ -117,16 +140,18 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                 sb.append("(").append(dataBuffer.substring(0, dataBuffer.length() - 1)).append(")");
 
                 stmt.addBatch(sb.toString());
-                System.out.println("sql:" + sb);
+                logger.info("sql:" + String.valueOf(sb));
+                sql.append(sb).append(";").append("\n");
             }
 
-
+            System.out.println("sql语句:" + sql.toString());
             int[] ints = stmt.executeBatch();
-            System.out.println("ints:"+ Arrays.toString(ints));
+            logger.info("插入成功条目数:" + Arrays.toString(ints));
             conn.commit();
             stmt.close();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            System.out.println(888888);
             System.out.println(e.getMessage());
         }
     }

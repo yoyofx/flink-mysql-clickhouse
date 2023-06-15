@@ -4,6 +4,7 @@ package org.example.fx;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -85,7 +86,7 @@ public class CancalBinlogRow {
     @Override
     public String toString() {
         return "CancalBinlogRow{" +
-                "data=" + data +
+                "data=" + Arrays.toString(data.toArray()) +
                 ", database='" + database + '\'' +
                 ", id=" + id +
                 ", isDdl=" + isDdl +
