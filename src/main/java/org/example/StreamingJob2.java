@@ -39,7 +39,7 @@ public class StreamingJob2 {
         // chaeckpoint 存储地址
         final String s3checkpoint = "s3://fmflink-checkpoint/checkpoint";
 
-        // set up the streaming execution environment
+        // 1：获取flink任务执行环境
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 //        final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment();
 
@@ -55,7 +55,7 @@ public class StreamingJob2 {
 //        env.setStateBackend(new FsStateBackend(s3checkpoint));
 
 
-
+        //创建 KafkaSource 读取kafka消息，此时保证消费者组内的消息不重复消费
         KafkaSource<String> source = KafkaSource.<String>builder()
 //                .setBootstrapServers("10.168.4.184:9092")
 //                .setTopics("test")
