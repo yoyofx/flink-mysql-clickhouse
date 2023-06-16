@@ -63,11 +63,8 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
 
-//        String url = "jdbc:ch://192.168.15.111:8123/default";
         String url = String.format("jdbc:ch://%s:%s/%s", this.ckHost, this.ckPort, this.dbName);
         Properties properties = new Properties();
-//        properties.setSessionId("default-session-id");
-
         ClickHouseDataSource dataSource = new ClickHouseDataSource(url, properties);
         conn = dataSource.getConnection(this.user, this.password);
         conn.setAutoCommit(false);
