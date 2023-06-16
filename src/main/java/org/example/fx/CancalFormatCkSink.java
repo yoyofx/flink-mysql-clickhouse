@@ -94,11 +94,11 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
                 sb.append("INSERT INTO ");
 
                 //匹配源数据库
-                if (!"chehou_data_report".equals(sourceDatabase)) {
-                    continue;
-                }
+//                 if (!"xxx".equals(sourceDatabase)) {
+//                     continue;
+//                 }
                 //暂时先直接定义目标库名称
-                String database = "yccb_analysis";
+                String database = "analysis";
                 //类型不存在，剔除sql
                 if (type == null) {
                     //类型为空跳出
