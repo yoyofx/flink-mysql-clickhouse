@@ -134,7 +134,6 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
 
                         }
 
-//                        System.out.println("key:" + key + "," + " value:" + data.get(key));
                     }
                 }
                 //追加字段
@@ -153,8 +152,9 @@ public class CancalFormatCkSink extends RichSinkFunction<List<CancalBinlogRow>> 
             conn.commit();
             stmt.close();
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
+            //e.printStackTrace();
+            logger.info(e.getMessage());
+            //System.out.println(e.getMessage());
         }
     }
 

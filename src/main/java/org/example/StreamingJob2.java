@@ -109,7 +109,7 @@ public class StreamingJob2 {
                 .withHost("clickhouse-yccb-analysis.inneryiche.com", "8123")
                 .withAuth("yccb_analysis", "yccb_analysis_user_rw", "jhdnmshTBgs")
         );
-        env.execute("Window WordCount");
+        env.execute("Sync Mysql to ClickHouse");
     }
 
 
